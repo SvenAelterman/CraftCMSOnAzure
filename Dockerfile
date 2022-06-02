@@ -1,32 +1,27 @@
 # use a multi-stage build for dependencies
-#FROM composer:2 as vendor
-# COPY composer.json composer.json
-# COPY composer.lock composer.lock
-# RUN composer install --ignore-platform-reqs --no-interaction --prefer-dist
-# RUN composer create-project craftcms/craft --ignore-platform-reqs
+FROM composer:latest as vendor
 
-FROM craftcms/nginx:8.0
+# TODO: Could specify in composer require statement a specific version of craftcms/cms 
+# instead of using composer update
+RUN composer create-project craftcms/craft:1.1.7 /app --no-dev --ignore-platform-req=ext-gd \
+	&& composer update \
+	&& composer require craftcms/feed-me:4.4.3 \
+	craftcms/redactor:2.10.6 \
+	ether/seo:3.7.4 \
+	nystudio107/craft-minify:1.2.11 \
+	putyourlightson/craft-sendgrid:1.2.3 \
+	putyourlightson/craft-sprig:1.12.2 \
+	solspace/craft-freeform:3.13.7 \
+	verbb/expanded-singles:1.2.0 \
+	--ignore-platform-req=ext-gd 
+
+# Due to dependency hell, using latest version of PHP
+FROM craftcms/nginx:8.1
 
 USER root
 
-#ENV SSH_PASSWD "root:Docker!"
-#RUN echo "$SSH_PASSWD" | chpasswd
-
-
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin/ --filename=composer
-
-RUN composer create-project craftcms/craft /app --ignore-platform-reqs
-
-COPY composer.json composer.json
-COPY composer.lock composer.lock
-
-RUN composer install --ignore-platform-reqs --no-interaction --prefer-dist
-
-RUN chown -R www-data:www-data /app/
-# the user is `www-data`, so we copy the files using the user and group
-COPY --chown=www-data:www-data --from=vendor /app/vendor/ /app/vendor/
-COPY --chown=www-data:www-data . .
-
+# Update package list and upgrade packages
+RUN apk -U upgrade
 
 # Modifications to run in App Service
 # Install OpenSSH and set the password for root to "Docker!". 
@@ -45,10 +40,13 @@ RUN adduser www-data sudo
 RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 # End modifications to run in App Service
 
-# the user is `www-data`, so we copy the files using the user and group
 USER www-data
-COPY --chown=www-data:www-data --from=vendor /app/vendor/ /app/vendor/
-COPY --chown=www-data:www-data . .
+
+# the user is `www-data`, so we copy the files using the user and group
+COPY --chown=www-data:www-data --from=vendor /app/ /app/
+
+# TODO: Copy UWG custom templates, files, etc. here
+#COPY --chown=www-data:www-data . .
 
 EXPOSE 8080 2222
 ENTRYPOINT ["sh", "/etc/start.sh"]
