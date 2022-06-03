@@ -3,8 +3,8 @@ param namingStructure string
 param subnetId string
 param crName string
 param dockerImageAndTag string
-param mariadbFqdn string
-param mariadbServerName string
+param dbFqdn string
+param dbServerName string
 param databaseName string
 
 param crResourceGroupName string = resourceGroup().name
@@ -56,7 +56,7 @@ resource appSvc 'Microsoft.Web/sites@2021-03-01' = {
       connectionStrings: [
         {
           // TODO: Params for username and pwd
-          connectionString: 'Database=${databaseName};Data Source=${mariadbFqdn};User Id=dbadmin@${mariadbServerName};Password=Dbpassword1'
+          connectionString: 'Database=${databaseName};Data Source=${dbFqdn};User Id=dbadmin@${dbServerName};Password=Dbpassword1'
           name: 'dbstring'
           type: 'MySql'
         }
@@ -81,7 +81,7 @@ resource appSvc 'Microsoft.Web/sites@2021-03-01' = {
         }
         {
           name: 'DB_SERVER'
-          value: mariadbFqdn
+          value: dbFqdn
         }
         {
           name: 'DB_PORT'
@@ -106,8 +106,8 @@ resource appSvc 'Microsoft.Web/sites@2021-03-01' = {
           value: 'Dbpassword1'
         }
         {
-          name: 'WEB_IMAGE_PORTS'
-          value: '80:8080'
+          name: 'WEBSITES_PORTS'
+          value: '8080'
         }
         {
           name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE'
@@ -122,6 +122,7 @@ module roles '../common-modules/roles.bicep' = {
   name: 'roles'
 }
 
+// TODO: This applies to RBAC assignment to the resource group, should be scoped to the CR
 resource roleAssignment 'Microsoft.Authorization/roleAssignments@2020-10-01-preview' = {
   name: guid('rbac-${appSvc.name}-AcrPull')
   properties: {

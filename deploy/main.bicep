@@ -17,6 +17,7 @@ param workloadName string
 param tags object = {}
 param sequence int = 1
 param namingConvention string = '{rtype}-{wloadname}-{env}-{loc}-{seq}'
+param useMySql bool = true
 
 var sequenceFormatted = format('{0:00}', sequence)
 
@@ -48,7 +49,7 @@ module vnet 'modules/vnet.bicep' = {
 }
 
 // TODO: consider putting data in separate RG
-module mariadb 'modules/mariadb.bicep' = {
+module mariadb 'modules/mariadb.bicep' = if (!useMySql) {
   name: 'mariadb'
   scope: rg
   params: {
@@ -58,6 +59,20 @@ module mariadb 'modules/mariadb.bicep' = {
   }
 }
 
+module mysql 'modules/mysql.bicep' = if (useMySql) {
+  name: 'mysql'
+  scope: rg
+  params: {
+    location: location
+    namingStructure: namingStructure
+    virtualNetworkId: vnet.outputs.vnetId
+    virtualNetworkName: vnet.outputs.vnetName
+    // The mysql subnet
+    delegateSubnetId: vnet.outputs.subnets[1].id
+  }
+}
+
+// TODO: Add KV and secrets
 module appSvc 'modules/appSvc.bicep' = {
   name: 'appSvc'
   scope: rg
@@ -65,18 +80,18 @@ module appSvc 'modules/appSvc.bicep' = {
     location: location
     namingStructure: namingStructure
     subnetId: vnet.outputs.subnets[2].id
-    mariadbServerName: mariadb.outputs.serverName
+    dbServerName: useMySql ? mysql.outputs.serverName : mariadb.outputs.serverName
     crName: acr.outputs.crName
     // TODO: Param
     dockerImageAndTag: 'craftcms:latest'
     crResourceGroupName: acr.outputs.rgName
-    mariadbFqdn: mariadb.outputs.fqdn
-    databaseName: mariadb.outputs.dbName
+    dbFqdn: useMySql ? mysql.outputs.fqdn : mariadb.outputs.fqdn
+    databaseName: useMySql ? mysql.outputs.dbName : mariadb.outputs.dbName
   }
 }
 
-// TODO: Storage account
-// TODO: Mount blob storage in craft CMS
+// TODO: Storage account, blob container
+// TODO: Mount storage in craft CMS
 
 output namingStructure string = namingStructure
 output acrLoginServer string = acr.outputs.acrLoginServer

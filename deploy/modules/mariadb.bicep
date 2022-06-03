@@ -6,7 +6,7 @@ var storageMB = 5120
 var dbName = 'craftcms'
 
 resource mariadb 'Microsoft.DBforMariaDB/servers@2018-06-01' = {
-  name: toLower(replace(namingStructure, '{rtype}', 'mdb'))
+  name: toLower(replace(namingStructure, '{rtype}', 'mariadb'))
   location: location
   sku: {
     name: 'GP_Gen5_2'

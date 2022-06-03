@@ -15,7 +15,7 @@ Param(
 	[Parameter()]
 	[string]$WorkloadName = 'craftcms',
 	#
-	[int]$Sequence = 1,
+	[int]$Sequence = 2,
 	[string]$NamingConvention = "{rtype}-$WorkloadName-{env}-{loc}-{seq}"
 )
 
@@ -43,9 +43,10 @@ $DeploymentResult
 if ($DeploymentResult.ProvisioningState -eq 'Succeeded') {
 	# login to ACR?
 	$Acr = $DeploymentResult.Outputs["acrName"].Value
+	$ImageName = "$($WorkloadName):latest"
 
-	# Build the container image
+	# Build the container image, Dockerfile is in the parent folder (../.)
 	az account set --subscription (Get-AzContext).Subscription.Id
-	Write-Host "az acr build --image '$($WorkloadName):latest' --registry $Acr ../."
-	az acr build --image "$($WorkloadName):latest" --registry $Acr ../.
+	Write-Host "az acr build --image $ImageName --registry $Acr ../."
+	az acr build --image $ImageName --registry $Acr ../.
 }

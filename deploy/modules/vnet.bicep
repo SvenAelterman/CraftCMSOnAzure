@@ -9,8 +9,8 @@ var subnets = [
     delegation: ''
   }
   {
-    subnetName: 'mariadb'
-    delegation: ''
+    subnetName: 'mysql'
+    delegation: 'Microsoft.DBforMySQL/flexibleServers'
   }
   {
     subnetName: 'appSvc'
@@ -21,7 +21,6 @@ var subnets = [
 resource vnet 'Microsoft.Network/virtualNetworks@2021-08-01' = {
   name: replace(namingStructure, '{rtype}', 'vnet')
   location: location
-  // TODO: Add subnet for MariaDB, App Svc
   properties: {
     addressSpace: {
       addressPrefixes: [
@@ -47,3 +46,4 @@ resource vnet 'Microsoft.Network/virtualNetworks@2021-08-01' = {
 
 output subnets array = vnet.properties.subnets
 output vnetName string = vnet.name
+output vnetId string = vnet.id
