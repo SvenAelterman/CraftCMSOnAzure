@@ -27,6 +27,9 @@ resource dnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@
 resource mySQL 'Microsoft.DBforMySQL/flexibleServers@2021-05-01' = {
   name: mySQLServerName
   location: location
+  dependsOn: [
+    dnsZoneVnetLink
+  ]
   sku: {
     name: 'Standard_D2ds_v4'
     tier: 'GeneralPurpose'
@@ -69,8 +72,6 @@ resource dbConfig 'Microsoft.DBForMySql/flexibleServers/configurations@2021-05-0
 //     collation: 'utf8_general_ci'
 //   }
 // }
-
-// LATER: How to turn off require_secure_transport
 
 output fqdn string = mySQL.properties.fullyQualifiedDomainName
 output dbName string = dbName

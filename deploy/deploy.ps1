@@ -15,7 +15,7 @@ Param(
 	[Parameter()]
 	[string]$WorkloadName = 'craftcms',
 	#
-	[int]$Sequence = 2,
+	[int]$Sequence = 1,
 	[string]$NamingConvention = "{rtype}-$WorkloadName-{env}-{loc}-{seq}"
 )
 
