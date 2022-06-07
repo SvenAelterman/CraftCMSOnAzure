@@ -23,6 +23,9 @@ USER root
 # Update package list and upgrade packages
 RUN apk -U upgrade
 
+# Install mysql tools for mysqldump to be available
+RUN apk add --no-cache mysql-client
+
 # Modifications to run in App Service
 # Install OpenSSH and set the password for root to "Docker!". 
 # In this example, "apk add" is the install instruction for an Alpine Linux-based image.
