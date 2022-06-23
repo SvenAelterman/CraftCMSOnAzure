@@ -28,13 +28,7 @@ var shortLocations = {
 
 // Translate the regular location value to a shorter value
 var shortLocationValue = shortLocations[location]
-var shortNameAnyLength = replace(replace(replace(replace(replace(
-          namingConvention, '{env}', take(environment, 1)),
-        '{loc}', shortLocationValue),
-      '{seq}', string(sequence)),
-    '{wloadname}', workloadName),
-  '{rtype}', resourceType)
-
+var shortNameAnyLength = replace(replace(replace(replace(replace(namingConvention, '{env}', take(environment, 1)), '{loc}', shortLocationValue), '{seq}', string(sequence)), '{wloadname}', workloadName), '{rtype}', resourceType)
 var shortNameAnyLengthHyphensProcessed = removeHyphens ? replace(shortNameAnyLength, '-', '') : shortNameAnyLength
 
 output shortName string = take(shortNameAnyLengthHyphensProcessed, maxLength)
