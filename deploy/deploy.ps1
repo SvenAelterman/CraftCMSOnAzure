@@ -19,16 +19,19 @@ Param(
 	[string]$NamingConvention = "{rtype}-$WorkloadName-{env}-{loc}-{seq}"
 )
 
+$ImageName = "$($WorkloadName):latest"
+
 $TemplateParameters = @{
 	# REQUIRED
-	location         = $Location
-	environment      = $Environment
-	workloadName     = $WorkloadName
+	location          = $Location
+	environment       = $Environment
+	workloadName      = $WorkloadName
 
 	# OPTIONAL
-	sequence         = $Sequence
-	namingConvention = $NamingConvention
-	tags             = @{
+	sequence          = $Sequence
+	namingConvention  = $NamingConvention
+	dockerImageAndTag = $ImageName
+	tags              = @{
 		'date-created' = (Get-Date -Format 'yyyy-MM-dd')
 		purpose        = $Environment
 		lifetime       = 'short'
@@ -45,7 +48,6 @@ if ($DeploymentResult.ProvisioningState -eq 'Succeeded') {
 	$Acr = $DeploymentResult.Outputs["acrName"].Value
 	$WebAppName = $DeploymentResult.Outputs["webAppName"].Value
 	$RgName = $DeploymentResult.Outputs["rgName"].Value
-	$ImageName = "$($WorkloadName):latest"
 
 	# Build the container image, Dockerfile is in the parent folder (../.)
 	az account set --subscription (Get-AzContext).Subscription.Id

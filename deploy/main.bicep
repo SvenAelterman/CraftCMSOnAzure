@@ -18,6 +18,7 @@ param tags object = {}
 param sequence int = 1
 param namingConvention string = '{rtype}-{wloadname}-{env}-{loc}-{seq}'
 param useMySql bool = true
+param dockerImageAndTag string = 'craftcms:latest'
 
 var sequenceFormatted = format('{0:00}', sequence)
 
@@ -69,6 +70,7 @@ module mysqlModule 'modules/mysql.bicep' = if (useMySql) {
     virtualNetworkName: vnet.outputs.vnetName
     // The mysql subnet
     delegateSubnetId: vnet.outputs.subnets[1].id
+    dbName: workloadName
   }
 }
 
@@ -105,9 +107,7 @@ module appSvc 'modules/appSvc.bicep' = {
     subnetId: vnet.outputs.subnets[2].id
     dbServerName: useMySql ? mysqlModule.outputs.serverName : mariadb.outputs.serverName
     crName: acr.outputs.crName
-    // TODO: Param
-    dockerImageAndTag: 'craftcms:latest'
-    //crResourceGroupName: acr.outputs.rgName
+    dockerImageAndTag: dockerImageAndTag
     dbFqdn: useMySql ? mysqlModule.outputs.fqdn : mariadb.outputs.fqdn
     databaseName: useMySql ? mysqlModule.outputs.dbName : mariadb.outputs.dbName
   }

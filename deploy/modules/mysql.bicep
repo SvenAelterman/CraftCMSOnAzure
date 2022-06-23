@@ -4,16 +4,20 @@ param delegateSubnetId string
 param virtualNetworkId string
 param virtualNetworkName string
 
-var storageGB = 20
-// TODO: Param?
-var dbName = 'craftcms'
+// Optional parameters (acceptable defaults)
+param storageGB int = 20
+param dbName string = 'craftcms'
+
+// Construct the MySQL server name - must be lowercase
 var mySQLServerName = toLower(replace(namingStructure, '{rtype}', 'mysql'))
 
+// Create a private DNS zone to host the MySQL Flexible Server records
 resource dnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
   name: '${mySQLServerName}.private.mysql.database.azure.com'
   location: 'global'
 }
 
+// Link the private DNS zone to the workload VNet
 resource dnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
   name: '${dnsZone.name}/${virtualNetworkName}'
   location: 'global'
@@ -25,6 +29,7 @@ resource dnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@
   }
 }
 
+// Create the MySQL Flexible Server
 resource mySQL 'Microsoft.DBforMySQL/flexibleServers@2021-05-01' = {
   name: mySQLServerName
   location: location
