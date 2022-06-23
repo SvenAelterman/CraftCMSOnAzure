@@ -7,7 +7,14 @@ var subnets = [
   {
     subnetName: 'default'
     delegation: ''
-    serviceEndpoints: []
+    serviceEndpoints: [
+      {
+        service: 'Microsoft.Storage'
+        locations: [
+          location
+        ]
+      }
+    ]
   }
   {
     subnetName: 'mysql'

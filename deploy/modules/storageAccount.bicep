@@ -2,6 +2,9 @@ param location string
 param storageAccountName string
 param blobContainerName string
 
+param virtualNetworkId string
+param subnets array
+
 resource storage 'Microsoft.Storage/storageAccounts@2021-09-01' = {
   name: storageAccountName
   location: location
@@ -14,6 +17,13 @@ resource storage 'Microsoft.Storage/storageAccounts@2021-09-01' = {
     defaultToOAuthAuthentication: true
     isHnsEnabled: false
     minimumTlsVersion: 'TLS1_2'
+    networkAcls: {
+      defaultAction: 'Deny'
+      virtualNetworkRules: [for subnet in subnets: {
+        id: '${virtualNetworkId}/subnets/${subnet.name}'
+        action: 'Allow'
+      }]
+    }
   }
 }
 
