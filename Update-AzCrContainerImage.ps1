@@ -1,4 +1,4 @@
-[int]$Sequence = 2
+[int]$Sequence = 5
 [string]$WorkloadName = 'craftcms'
 [string]$Acr = "cr$($WorkloadName)demoeastus0$($Sequence)"
 

@@ -7,14 +7,14 @@ param dbFqdn string
 param dbServerName string
 param databaseName string
 
-param crResourceGroupName string = resourceGroup().name
+//param crResourceGroupName string = resourceGroup().name
 
 var linuxFx = 'DOCKER|${cr.properties.loginServer}/${dockerImageAndTag}'
 
 resource cr 'Microsoft.ContainerRegistry/registries@2021-12-01-preview' existing = {
   name: crName
   // Different subscription for the CR than for the app svc is not supported
-  scope: resourceGroup(crResourceGroupName)
+  //scope: resourceGroup(crResourceGroupName)
 }
 
 resource appSvcPlan 'Microsoft.Web/serverfarms@2021-03-01' = {
@@ -33,8 +33,10 @@ resource appSvcPlan 'Microsoft.Web/serverfarms@2021-03-01' = {
   }
 }
 
+var webAppName = replace(namingStructure, '{rtype}', 'app')
+
 resource appSvc 'Microsoft.Web/sites@2021-03-01' = {
-  name: replace(namingStructure, '{rtype}', 'app')
+  name: webAppName
   location: location
   identity: {
     type: 'SystemAssigned'
@@ -67,14 +69,6 @@ resource appSvc 'Microsoft.Web/sites@2021-03-01' = {
           name: 'DOCKER_REGISTRY_SERVER_URL'
           value: 'https://${cr.properties.loginServer}'
         }
-        // {
-        //   name: 'DOCKER_REGISTRY_SERVER_USERNAME'
-        //   value: 'adminUser'
-        // }
-        // {
-        //   name: 'DOCKER_REGISTRY_SERVER_PASSWORD'
-        //   value: cr.listCredentials().passwords[0].value
-        // }
         {
           name: 'DB_DRIVER'
           value: 'mysql'
@@ -113,6 +107,27 @@ resource appSvc 'Microsoft.Web/sites@2021-03-01' = {
           name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE'
           value: 'false'
         }
+        {
+          name: 'SECURITY_KEY'
+          value: 'CyteV8kbWB_4wvzyjS-PsjCkuGn5wXui'
+        }
+        {
+          name: 'APP_ID'
+          value: 'CraftCMS--0fbb0a77-7f67-40cb-9679-bd73cac7f8e4'
+        }
+        {
+          name: 'ENVIRONMENT'
+          value: 'dev'
+        }
+        {
+          name: 'CP_TRIGGER'
+          value: 'admin'
+        }
+        {
+          name: 'PRIMARY_SITE_URL'
+          // TODO: use actual app URL, must separate config from creation
+          value: 'https://${webAppName}.azurewebsites.net'
+        }
       ]
     }
   }
@@ -125,6 +140,7 @@ module roles '../common-modules/roles.bicep' = {
 // TODO: This applies to RBAC assignment to the resource group, should be scoped to the CR
 resource roleAssignment 'Microsoft.Authorization/roleAssignments@2020-10-01-preview' = {
   name: guid('rbac-${appSvc.name}-AcrPull')
+  scope: cr
   properties: {
     roleDefinitionId: roles.outputs.roles['AcrPull']
     principalId: appSvc.identity.principalId
@@ -132,5 +148,8 @@ resource roleAssignment 'Microsoft.Authorization/roleAssignments@2020-10-01-prev
   }
 }
 
+// TODO: Create RBAC assignment for App Svc mgd id to access KV
+
 output appSvcPrincipalId string = appSvc.identity.principalId
 output linuxFx string = linuxFx
+output webAppName string = appSvc.name

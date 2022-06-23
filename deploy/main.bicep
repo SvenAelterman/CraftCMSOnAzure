@@ -59,7 +59,9 @@ module mariadb 'modules/mariadb.bicep' = if (!useMySql) {
   }
 }
 
-module mysql 'modules/mysql.bicep' = if (useMySql) {
+var mySqlExistenceTagName = 'dbDeployed'
+
+module mysqlModule 'modules/mysql.bicep' = if (useMySql) {
   name: 'mysql'
   scope: rg
   params: {
@@ -69,10 +71,34 @@ module mysql 'modules/mysql.bicep' = if (useMySql) {
     virtualNetworkName: vnet.outputs.vnetName
     // The mysql subnet
     delegateSubnetId: vnet.outputs.subnets[1].id
+    existenceTagName: mySqlExistenceTagName
   }
 }
 
-// TODO: Add KV and secrets
+// Ensure the name of the Key Vault meets requirements
+module kvShortName 'common-modules/shortname.bicep' = {
+  name: 'kvShortName'
+  scope: rg
+  params: {
+    location: location
+    resourceType: 'kv'
+    namingConvention: namingConvention
+    workloadName: workloadName
+    environment: environment
+    sequence: sequence
+    maxLength: 24
+  }
+}
+
+module kv 'modules/keyVault.bicep' = {
+  name: 'kv'
+  scope: rg
+  params: {
+    location: location
+    kvName: kvShortName.outputs.shortName
+  }
+}
+
 module appSvc 'modules/appSvc.bicep' = {
   name: 'appSvc'
   scope: rg
@@ -80,20 +106,56 @@ module appSvc 'modules/appSvc.bicep' = {
     location: location
     namingStructure: namingStructure
     subnetId: vnet.outputs.subnets[2].id
-    dbServerName: useMySql ? mysql.outputs.serverName : mariadb.outputs.serverName
+    dbServerName: useMySql ? mysqlModule.outputs.serverName : mariadb.outputs.serverName
     crName: acr.outputs.crName
     // TODO: Param
     dockerImageAndTag: 'craftcms:latest'
-    crResourceGroupName: acr.outputs.rgName
-    dbFqdn: useMySql ? mysql.outputs.fqdn : mariadb.outputs.fqdn
-    databaseName: useMySql ? mysql.outputs.dbName : mariadb.outputs.dbName
+    //crResourceGroupName: acr.outputs.rgName
+    dbFqdn: useMySql ? mysqlModule.outputs.fqdn : mariadb.outputs.fqdn
+    databaseName: useMySql ? mysqlModule.outputs.dbName : mariadb.outputs.dbName
+  }
+  dependsOn: [
+    kv
+  ]
+}
+
+module appInsights 'modules/appInsights.bicep' = {
+  name: 'appInsights'
+  scope: rg
+}
+
+// Create a name for the new storage account
+// LATER: Add a randomization factor
+module stShortName 'common-modules/shortname.bicep' = {
+  name: 'stShortName'
+  scope: rg
+  params: {
+    environment: environment
+    location: location
+    namingConvention: namingConvention
+    resourceType: 'st'
+    workloadName: workloadName
+    maxLength: 23
+    removeHyphens: true
+    sequence: sequence
   }
 }
 
-// TODO: Storage account, blob container
+module storage 'modules/storageAccount.bicep' = {
+  name: 'storage'
+  scope: rg
+  params: {
+    location: location
+    storageAccountName: stShortName.outputs.shortName
+    blobContainerName: 'craftcms'
+  }
+}
+
 // TODO: Mount storage in craft CMS
 
 output namingStructure string = namingStructure
 output acrLoginServer string = acr.outputs.acrLoginServer
 output linuxFx string = appSvc.outputs.linuxFx
 output acrName string = acr.outputs.crName
+output webAppName string = appSvc.outputs.webAppName
+output rgName string = rg.name

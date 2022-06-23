@@ -15,6 +15,10 @@ var subnets = [
   {
     subnetName: 'appSvc'
     delegation: 'Microsoft.Web/serverFarms'
+    serviceEndpoints: [
+      'Microsoft.Storage'
+    ]
+    // LATER: Consider service endpoint policy to avoid data exfil to another storage account
   }
 ]
 
@@ -39,6 +43,7 @@ resource vnet 'Microsoft.Network/virtualNetworks@2021-08-01' = {
             }
           }
         ])
+        // TODO: Process any service endpoints
       }
     }]
   }
