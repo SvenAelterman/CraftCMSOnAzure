@@ -44,4 +44,3 @@ resource blobContainer 'Microsoft.Storage/storageAccounts/blobServices/container
   properties: {
   }
 }
-// TODO: Add blob container

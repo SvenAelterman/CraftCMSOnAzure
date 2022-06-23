@@ -55,15 +55,6 @@ resource appSvc 'Microsoft.Web/sites@2021-03-01' = {
       linuxFxVersion: linuxFx
       acrUseManagedIdentityCreds: true
 
-      connectionStrings: [
-        {
-          // TODO: Params for username and pwd
-          connectionString: 'Database=${databaseName};Data Source=${dbFqdn};User Id=dbadmin@${dbServerName};Password=Dbpassword1'
-          name: 'dbstring'
-          type: 'MySql'
-        }
-      ]
-
       appSettings: [
         {
           name: 'DOCKER_REGISTRY_SERVER_URL'
