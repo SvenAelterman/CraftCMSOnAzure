@@ -19,6 +19,7 @@ resource mariadb 'Microsoft.DBforMariaDB/servers@2018-06-01' = {
     administratorLogin: 'dbadmin'
     createMode: 'Default'
     administratorLoginPassword: 'Dbpassword1'
+    // WARNING: Current version of Craft 3 and Craft 4 require at least 10.5
     version: '10.3'
     minimalTlsVersion: 'TLS1_2'
     storageProfile: {

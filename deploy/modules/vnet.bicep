@@ -14,6 +14,12 @@ var subnets = [
           location
         ]
       }
+      {
+        service: 'Microsoft.KeyVault'
+        locations: [
+          location
+        ]
+      }
     ]
   }
   {
@@ -31,8 +37,15 @@ var subnets = [
           location
         ]
       }
+      {
+        service: 'Microsoft.KeyVault'
+        locations: [
+          location
+        ]
+      }
     ]
     // LATER: Consider service endpoint policy to avoid data exfil to another storage account
+    // TODO: Add App Gateway and Bastion subnets
   }
 ]
 

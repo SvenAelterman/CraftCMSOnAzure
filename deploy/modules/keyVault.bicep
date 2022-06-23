@@ -1,9 +1,6 @@
 param location string
 param kvName string
-
-module roles '../common-modules/roles.bicep' = {
-  name: 'roles'
-}
+param subnets array
 
 resource kv 'Microsoft.KeyVault/vaults@2021-11-01-preview' = {
   name: kvName
@@ -14,12 +11,18 @@ resource kv 'Microsoft.KeyVault/vaults@2021-11-01-preview' = {
       family: 'A'
     }
     tenantId: subscription().tenantId
-    //enablePurgeProtection: false
     enableSoftDelete: false
     enableRbacAuthorization: true
+
+    networkAcls: {
+      bypass: 'AzureServices'
+      defaultAction: 'Deny'
+      virtualNetworkRules: [for subnet in subnets: {
+        id: subnet
+        ignoreMissingVnetServiceEndpoint: false
+      }]
+    }
   }
 }
 
 output keyVaultName string = kv.name
-
-// TODO: Add secrets

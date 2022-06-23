@@ -4,6 +4,10 @@ param delegateSubnetId string
 param virtualNetworkId string
 param virtualNetworkName string
 
+@secure()
+param dbAdminPassword string
+param dbAdminUserName string = 'dbadmin'
+
 // Optional parameters (acceptable defaults)
 param storageGB int = 20
 param dbName string = 'craftcms'
@@ -42,9 +46,8 @@ resource mySQL 'Microsoft.DBforMySQL/flexibleServers@2021-05-01' = {
     //capacity: 2
   }
   properties: {
-    administratorLogin: 'dbadmin'
-    // TODO: Make sure to parametrize
-    administratorLoginPassword: 'Dbpassword1'
+    administratorLogin: dbAdminUserName
+    administratorLoginPassword: dbAdminPassword
     storage: {
       autoGrow: 'Enabled'
       iops: 360

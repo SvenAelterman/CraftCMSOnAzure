@@ -56,7 +56,7 @@ COPY --chown=www-data:www-data --from=vendor /app/ /app/
 # Coyping blank .env to bypass craft setup
 COPY --chown=www-data:www-data empty.env /app/.env
 
-# TODO: Copy UWG custom templates, files, etc. here
+# LATER: Copy UWG custom templates, files, etc. here
 #COPY --chown=www-data:www-data . .
 
 EXPOSE 8080 2222

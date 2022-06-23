@@ -13,6 +13,11 @@ param location string
 param environment string
 param workloadName string
 
+@secure()
+param dbAdminPassword string
+@secure()
+param dbAdminUserName string
+
 // Optional parameters
 param tags object = {}
 param sequence int = 1
@@ -24,6 +29,10 @@ var sequenceFormatted = format('{0:00}', sequence)
 
 // Naming structure only needs the resource type ({rtype}) replaced
 var namingStructure = replace(replace(replace(replace(namingConvention, '{env}', environment), '{loc}', location), '{seq}', sequenceFormatted), '{wloadname}', workloadName)
+
+var dbUserNameSecretName = 'mysql-username'
+var dbPasswordSecretName = 'mysql-password'
+var craftSecurityKeySecretName = 'craft-securitykey'
 
 resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   name: replace(namingStructure, '{rtype}', 'rg')
@@ -56,7 +65,7 @@ module mariadb 'modules/mariadb.bicep' = if (!useMySql) {
   params: {
     location: location
     namingStructure: namingStructure
-    allowSubnetId: vnet.outputs.subnets[2].id
+    allowSubnetId: vnet.outputs.subnets[2].id // AppSvc subnet
   }
 }
 
@@ -68,9 +77,11 @@ module mysqlModule 'modules/mysql.bicep' = if (useMySql) {
     namingStructure: namingStructure
     virtualNetworkId: vnet.outputs.vnetId
     virtualNetworkName: vnet.outputs.vnetName
-    // The mysql subnet
+    // The MySQL subnet in the vnet is the second entry in the array
     delegateSubnetId: vnet.outputs.subnets[1].id
     dbName: workloadName
+    dbAdminUserName: 'dbadmin'
+    dbAdminPassword: dbAdminPassword
   }
 }
 
@@ -95,6 +106,24 @@ module kv 'modules/keyVault.bicep' = {
   params: {
     location: location
     kvName: kvShortName.outputs.shortName
+    subnets: [
+      vnet.outputs.subnets[0].id // default
+      vnet.outputs.subnets[2].id // appSvc
+    ]
+  }
+}
+
+module kvSecrets 'modules/keyVaultSecrets.bicep' = {
+  name: 'kv-secrets'
+  scope: rg
+  params: {
+    keyVaultName: kv.outputs.keyVaultName
+    dbAdminPassword: dbAdminPassword
+    dbAdminPasswordSecretName: dbPasswordSecretName
+    dbAdminUserName: dbAdminUserName
+    dbAdminUserNameSecretName: dbUserNameSecretName
+    craftSecurityKey: 'CyteV8kbWB_4wvzyjS-PsjCkuGn5wXui'
+    craftSecurityKeySecretName: craftSecurityKeySecretName
   }
 }
 
@@ -104,12 +133,19 @@ module appSvc 'modules/appSvc.bicep' = {
   params: {
     location: location
     namingStructure: namingStructure
+    environment: environment
     subnetId: vnet.outputs.subnets[2].id
-    dbServerName: useMySql ? mysqlModule.outputs.serverName : mariadb.outputs.serverName
     crName: acr.outputs.crName
     dockerImageAndTag: dockerImageAndTag
     dbFqdn: useMySql ? mysqlModule.outputs.fqdn : mariadb.outputs.fqdn
     databaseName: useMySql ? mysqlModule.outputs.dbName : mariadb.outputs.dbName
+
+    // The names of the secrets in the Key Vault
+    craftSecurityKeySecretName: craftSecurityKeySecretName
+    dbPasswordSecretName: dbPasswordSecretName
+    dbUserNameSecretName: dbUserNameSecretName
+    // The name of the Key Vault
+    keyVaultName: kv.outputs.keyVaultName
   }
   dependsOn: [
     kv

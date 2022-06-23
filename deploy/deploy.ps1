@@ -20,12 +20,16 @@ Param(
 )
 
 $ImageName = "$($WorkloadName):latest"
+$DbAdminUserName = "dbadmin"
+[SecureString]$DbAdminPassword = (Get-Credential -UserName $DbAdminUserName -Message "Create a secure password for the database admin.").Password
 
 $TemplateParameters = @{
 	# REQUIRED
 	location          = $Location
 	environment       = $Environment
 	workloadName      = $WorkloadName
+	dbAdminPassword   = $DbAdminPassword
+	dbAdminUserName   = $DbAdminUserName
 
 	# OPTIONAL
 	sequence          = $Sequence
@@ -41,24 +45,23 @@ $TemplateParameters = @{
 $DeploymentResult = New-AzDeployment -Location $Location -Name "$WorkloadName-$Environment-$(Get-Date -Format 'yyyyMMddThhmmssZ' -AsUTC)" `
 	-TemplateFile ".\main.bicep" -TemplateParameterObject $TemplateParameters
 
+# Display the deployment result
 $DeploymentResult
 
 if ($DeploymentResult.ProvisioningState -eq 'Succeeded') {
-	# login to ACR?
 	$Acr = $DeploymentResult.Outputs["acrName"].Value
 	$WebAppName = $DeploymentResult.Outputs["webAppName"].Value
 	$RgName = $DeploymentResult.Outputs["rgName"].Value
 
-	# Build the container image, Dockerfile is in the parent folder (../.)
 	az account set --subscription (Get-AzContext).Subscription.Id
 	Write-Host "az acr build --image $ImageName --registry $Acr ../."
+
+	# Build the container image, Dockerfile is in the parent folder (../.)
 	az acr build --image $ImageName --registry $Acr ../.
 
 	# Enable CD for container
 	$ci_cd_url = az webapp deployment container config --name $WebAppName --resource-group $RgName --enable-cd true --query CI_CD_URL --output tsv
 
-	$ci_cd_url
-	#$WebHookName = $NamingConvention.Replace('{rtype}', 'wh').Replace('{}')
-	$WebHookName = 'whcraftcmsdemoeastus01'
+	$WebHookName = $NamingConvention.Replace('{rtype}', 'wh').Replace('{env}', $Environment).Replace('{loc}', $Location).Replace('{seq}', $Sequence).Replace('-', '')
 	az acr webhook create --name $WebHookName --registry $Acr --resource-group $RgName --actions push --uri $ci_cd_url --scope $ImageName
 }
