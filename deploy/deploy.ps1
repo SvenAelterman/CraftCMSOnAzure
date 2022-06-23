@@ -10,12 +10,12 @@ Param(
 	[string]$Location = 'eastus',
 	# The environment descriptor
 	[ValidateSet('test', 'demo', 'prod')]
-	[string]$Environment = 'demo',
+	[string]$Environment = 'test',
 	#
 	[Parameter()]
 	[string]$WorkloadName = 'craftcms',
 	#
-	[int]$Sequence = 5,
+	[int]$Sequence = 1,
 	[string]$NamingConvention = "{rtype}-$WorkloadName-{env}-{loc}-{seq}"
 )
 
