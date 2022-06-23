@@ -7,16 +7,23 @@ var subnets = [
   {
     subnetName: 'default'
     delegation: ''
+    serviceEndpoints: []
   }
   {
     subnetName: 'mysql'
     delegation: 'Microsoft.DBforMySQL/flexibleServers'
+    serviceEndpoints: []
   }
   {
     subnetName: 'appSvc'
     delegation: 'Microsoft.Web/serverFarms'
     serviceEndpoints: [
-      'Microsoft.Storage'
+      {
+        service: 'Microsoft.Storage'
+        locations: [
+          location
+        ]
+      }
     ]
     // LATER: Consider service endpoint policy to avoid data exfil to another storage account
   }
@@ -43,7 +50,7 @@ resource vnet 'Microsoft.Network/virtualNetworks@2021-08-01' = {
             }
           }
         ])
-        // TODO: Process any service endpoints
+        serviceEndpoints: !empty(subnet.serviceEndpoints) ? subnet.serviceEndpoints : null
       }
     }]
   }
