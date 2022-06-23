@@ -59,9 +59,5 @@ COPY --chown=www-data:www-data empty.env /app/.env
 # TODO: Copy UWG custom templates, files, etc. here
 #COPY --chown=www-data:www-data . .
 
-# HACK: Can't connect to DB here, so plugin installation seems to be 
-# (at least partially) a DB operation
-#RUN ./craft plugin/install expanded-singles
-
 EXPOSE 8080 2222
 ENTRYPOINT ["sh", "/etc/start.sh"]

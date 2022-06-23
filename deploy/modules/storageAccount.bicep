@@ -27,6 +27,4 @@ resource storage 'Microsoft.Storage/storageAccounts@2021-09-01' = {
   }
 }
 
-// TODO: Add blob container name
-
-// TODO: VNet service endpoint
+// TODO: Add blob container
