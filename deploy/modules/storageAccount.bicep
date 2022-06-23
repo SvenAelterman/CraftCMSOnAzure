@@ -27,4 +27,21 @@ resource storage 'Microsoft.Storage/storageAccounts@2021-09-01' = {
   }
 }
 
+resource blobServices 'Microsoft.Storage/storageAccounts/blobServices@2021-09-01' = {
+  name: 'default'
+  parent: storage
+  properties: {
+    containerDeleteRetentionPolicy: {
+      days: 7
+      enabled: true
+    }
+  }
+}
+
+resource blobContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2021-09-01' = {
+  name: blobContainerName
+  parent: blobServices
+  properties: {
+  }
+}
 // TODO: Add blob container

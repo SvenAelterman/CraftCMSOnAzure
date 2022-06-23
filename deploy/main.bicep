@@ -144,7 +144,7 @@ module storage 'modules/storageAccount.bicep' = {
   params: {
     location: location
     storageAccountName: stShortName.outputs.shortName
-    blobContainerName: 'craftcms'
+    blobContainerName: workloadName
     virtualNetworkId: vnet.outputs.vnetId
     subnets: [
       vnet.outputs.subnets[0] // default
