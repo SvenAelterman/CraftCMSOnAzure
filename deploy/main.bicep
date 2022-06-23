@@ -48,7 +48,7 @@ module vnet 'modules/vnet.bicep' = {
   }
 }
 
-// TODO: consider putting data in separate RG
+// LATER: (prod) Consider putting data in separate RG
 module mariadb 'modules/mariadb.bicep' = if (!useMySql) {
   name: 'mariadb'
   scope: rg
@@ -58,8 +58,6 @@ module mariadb 'modules/mariadb.bicep' = if (!useMySql) {
     allowSubnetId: vnet.outputs.subnets[2].id
   }
 }
-
-var mySqlExistenceTagName = 'dbDeployed'
 
 module mysqlModule 'modules/mysql.bicep' = if (useMySql) {
   name: 'mysql'
@@ -71,7 +69,6 @@ module mysqlModule 'modules/mysql.bicep' = if (useMySql) {
     virtualNetworkName: vnet.outputs.vnetName
     // The mysql subnet
     delegateSubnetId: vnet.outputs.subnets[1].id
-    existenceTagName: mySqlExistenceTagName
   }
 }
 
