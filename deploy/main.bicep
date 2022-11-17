@@ -221,7 +221,6 @@ module storage 'modules/storageAccount.bicep' = {
     blobContainerName: workloadName
     virtualNetworkId: vnet.outputs.vnetId
     subnets: [
-      vnet.outputs.subnets[0] // default
       vnet.outputs.subnets[2] // appSvc
     ]
   }
