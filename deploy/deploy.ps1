@@ -11,12 +11,10 @@ Param(
 	# The environment descriptor
 	[ValidateSet('test', 'demo', 'prod')]
 	[string]$Environment = 'test',
-	#
-	[Parameter()]
 	[string]$WorkloadName = 'craftcms',
-	#
-	[int]$Sequence = 1,
-	[string]$NamingConvention = "{rtype}-$WorkloadName-{env}-{loc}-{seq}"
+	[int]$Sequence = 9,
+	[string]$NamingConvention = "{rtype}-{wloadname}-{env}-{loc}-{seq}",
+	[string]$WebsiteProjectName = "gafilmacademy"
 )
 
 $ImageName = "$($WorkloadName):latest"
@@ -25,20 +23,22 @@ $DbAdminUserName = "dbadmin"
 
 $TemplateParameters = @{
 	# REQUIRED
-	location          = $Location
-	environment       = $Environment
-	workloadName      = $WorkloadName
-	dbAdminPassword   = $DbAdminPassword
-	dbAdminUserName   = $DbAdminUserName
+	location           = $Location
+	environment        = $Environment
+	workloadName       = $WorkloadName
+	dbAdminPassword    = $DbAdminPassword
+	dbAdminUserName    = $DbAdminUserName
+	websiteProjectName = $WebSiteProjectName
 
 	# OPTIONAL
-	sequence          = $Sequence
-	namingConvention  = $NamingConvention
-	dockerImageAndTag = $ImageName
-	tags              = @{
+	sequence           = $Sequence
+	namingConvention   = $NamingConvention
+	dockerImageAndTag  = $ImageName
+	tags               = @{
 		'date-created' = (Get-Date -Format 'yyyy-MM-dd')
 		purpose        = $Environment
 		lifetime       = 'short'
+		'customer-ref' = 'UWG'
 	}
 }
 

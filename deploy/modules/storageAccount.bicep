@@ -20,6 +20,8 @@ resource storage 'Microsoft.Storage/storageAccounts@2021-09-01' = {
     networkAcls: {
       defaultAction: 'Deny'
       virtualNetworkRules: [for subnet in subnets: {
+        // TODO: Reference subnet by symbolic reference
+        #disable-next-line use-resource-id-functions
         id: '${virtualNetworkId}/subnets/${subnet.name}'
         action: 'Allow'
       }]

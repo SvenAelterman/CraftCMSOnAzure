@@ -18,6 +18,8 @@ param dbAdminPassword string
 @secure()
 param dbAdminUserName string
 
+param websiteProjectName string
+
 // Optional parameters
 param tags object = {}
 param sequence int = 1
@@ -28,21 +30,49 @@ param dockerImageAndTag string = 'craftcms:latest'
 var sequenceFormatted = format('{0:00}', sequence)
 
 // Naming structure only needs the resource type ({rtype}) replaced
-var namingStructure = replace(replace(replace(replace(namingConvention, '{env}', environment), '{loc}', location), '{seq}', sequenceFormatted), '{wloadname}', workloadName)
+var rgNamingStructure = replace(replace(replace(namingConvention, '{env}', environment), '{loc}', location), '{seq}', sequenceFormatted)
+var namingStructure = replace(rgNamingStructure, '{wloadname}', workloadName)
 
 var dbUserNameSecretName = 'mysql-username'
 var dbPasswordSecretName = 'mysql-password'
 var craftSecurityKeySecretName = 'craft-securitykey'
 
-resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
-  name: replace(namingStructure, '{rtype}', 'rg')
+// Create multiple resource groups for governance
+var rgBaseName = replace(rgNamingStructure, '{rtype}', 'rg')
+
+resource dataRg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
+  name: replace(rgBaseName, '{wloadname}', 'data')
+  location: location
+  tags: tags
+}
+
+resource sharedRg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
+  name: replace(rgBaseName, '{wloadname}', 'shared')
+  location: location
+  tags: tags
+}
+
+resource projectRg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
+  name: replace(rgBaseName, '{wloadname}', websiteProjectName)
+  location: location
+  tags: tags
+}
+
+resource networkRg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
+  name: replace(rgBaseName, '{wloadname}', 'networking')
+  location: location
+  tags: tags
+}
+
+resource appSvcPlanRg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
+  name: replace(rgBaseName, '{wloadname}', 'appservice')
   location: location
   tags: tags
 }
 
 module acr 'modules/cr.bicep' = {
   name: 'cr'
-  scope: rg
+  scope: sharedRg
   params: {
     location: location
     namingStructure: namingStructure
@@ -51,7 +81,7 @@ module acr 'modules/cr.bicep' = {
 
 module vnet 'modules/vnet.bicep' = {
   name: 'vnet'
-  scope: rg
+  scope: networkRg
   params: {
     location: location
     namingStructure: namingStructure
@@ -61,7 +91,7 @@ module vnet 'modules/vnet.bicep' = {
 // LATER: (prod) Consider putting data in separate RG
 module mariadb 'modules/mariadb.bicep' = if (!useMySql) {
   name: 'mariadb'
-  scope: rg
+  scope: dataRg
   params: {
     location: location
     namingStructure: namingStructure
@@ -71,7 +101,7 @@ module mariadb 'modules/mariadb.bicep' = if (!useMySql) {
 
 module mysqlModule 'modules/mysql.bicep' = if (useMySql) {
   name: 'mysql'
-  scope: rg
+  scope: dataRg
   params: {
     location: location
     namingStructure: namingStructure
@@ -88,7 +118,7 @@ module mysqlModule 'modules/mysql.bicep' = if (useMySql) {
 // Ensure the name of the Key Vault meets requirements
 module kvShortName 'common-modules/shortname.bicep' = {
   name: 'kvShortName'
-  scope: rg
+  scope: sharedRg
   params: {
     location: location
     resourceType: 'kv'
@@ -102,20 +132,20 @@ module kvShortName 'common-modules/shortname.bicep' = {
 
 module kv 'modules/keyVault.bicep' = {
   name: 'kv'
-  scope: rg
+  scope: sharedRg
   params: {
     location: location
     kvName: kvShortName.outputs.shortName
     subnets: [
-      vnet.outputs.subnets[0].id // default
       vnet.outputs.subnets[2].id // appSvc
+      vnet.outputs.subnets[0].id // AppGw
     ]
   }
 }
 
 module kvSecrets 'modules/keyVaultSecrets.bicep' = {
   name: 'kv-secrets'
-  scope: rg
+  scope: sharedRg
   params: {
     keyVaultName: kv.outputs.keyVaultName
     dbAdminPassword: dbAdminPassword
@@ -127,9 +157,8 @@ module kvSecrets 'modules/keyVaultSecrets.bicep' = {
   }
 }
 
-module appSvc 'modules/appSvc.bicep' = {
+module appSvc 'modules/appSvc-support.bicep' = {
   name: 'appSvc'
-  scope: rg
   params: {
     location: location
     namingStructure: namingStructure
@@ -146,28 +175,36 @@ module appSvc 'modules/appSvc.bicep' = {
     dbUserNameSecretName: dbUserNameSecretName
     // The name of the Key Vault
     keyVaultName: kv.outputs.keyVaultName
+    crResourceGroupName: sharedRg.name
+    projectResourceGroupName: projectRg.name
+    appSvcPlanResourceGroupName: appSvcPlanRg.name
+    projectName: websiteProjectName
+    // TODO: Rename parameter
+    appSvcNamingStructure: rgNamingStructure
+    tags: tags
   }
   dependsOn: [
     kv
   ]
 }
 
-module appInsights 'modules/appInsights.bicep' = {
-  name: 'appInsights'
-  scope: rg
-}
+// TODO: Complete module
+// module appInsights 'modules/appInsights.bicep' = {
+//   name: 'appInsights'
+//   scope: projectRg
+// }
 
 // Create a name for the new storage account
 // LATER: Add a randomization factor
 module stShortName 'common-modules/shortname.bicep' = {
   name: 'stShortName'
-  scope: rg
+  scope: projectRg
   params: {
     environment: environment
     location: location
     namingConvention: namingConvention
     resourceType: 'st'
-    workloadName: workloadName
+    workloadName: websiteProjectName
     maxLength: 23
     removeHyphens: true
     sequence: sequence
@@ -176,7 +213,7 @@ module stShortName 'common-modules/shortname.bicep' = {
 
 module storage 'modules/storageAccount.bicep' = {
   name: 'storage'
-  scope: rg
+  scope: projectRg
   params: {
     location: location
     storageAccountName: stShortName.outputs.shortName
@@ -189,6 +226,19 @@ module storage 'modules/storageAccount.bicep' = {
   }
 }
 
+// module AppGwModule 'modules/appGw.bicep' = {
+//   name: 'appGw'
+//   scope: networkRg
+//   params: {
+//     location: location
+//     appSvcName: appSvc.outputs.webAppName
+//     keyVaultName: kv.outputs.keyVaultName
+//     namingStructure: namingStructure
+//     subnetName: 'AppGw'
+//     vnetName: vnet.outputs.vnetName
+//   }
+// }
+
 // TODO: Mount storage in craft CMS
 
 output namingStructure string = namingStructure
@@ -196,4 +246,4 @@ output acrLoginServer string = acr.outputs.acrLoginServer
 output linuxFx string = appSvc.outputs.linuxFx
 output acrName string = acr.outputs.crName
 output webAppName string = appSvc.outputs.webAppName
-output rgName string = rg.name
+//output rgName string = rg.name

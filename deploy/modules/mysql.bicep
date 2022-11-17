@@ -23,7 +23,8 @@ resource dnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
 
 // Link the private DNS zone to the workload VNet
 resource dnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
-  name: '${dnsZone.name}/${virtualNetworkName}'
+  name: virtualNetworkName
+  parent: dnsZone
   location: 'global'
   properties: {
     virtualNetwork: {
@@ -43,7 +44,6 @@ resource mySQL 'Microsoft.DBforMySQL/flexibleServers@2021-05-01' = {
   sku: {
     name: 'Standard_D2ds_v4'
     tier: 'GeneralPurpose'
-    //capacity: 2
   }
   properties: {
     administratorLogin: dbAdminUserName
@@ -53,7 +53,7 @@ resource mySQL 'Microsoft.DBforMySQL/flexibleServers@2021-05-01' = {
       iops: 360
       storageSizeGB: storageGB
     }
-    version: '5.7'
+    version: '8.0.21'
     backup: {
       geoRedundantBackup: 'Disabled'
       backupRetentionDays: 7
@@ -65,23 +65,21 @@ resource mySQL 'Microsoft.DBforMySQL/flexibleServers@2021-05-01' = {
   }
 }
 
-// Determine if this is a new deployment based on the existence of a tag
-//var isNewDeployment = true // contains(mySQL.tags, existenceTagName)
-
 // Turn off requirement for TLS to connect to MySQL as Craft does not appear to support it
+#disable-next-line BCP245
 resource dbConfig 'Microsoft.DBForMySql/flexibleServers/configurations@2021-05-01' = {
   name: '${mySQL.name}/require_secure_transport'
+  #disable-next-line BCP073
   properties: {
     value: 'OFF'
     source: 'user-override'
   }
 }
 
-// Deploy a database, if this is a new server deployment only
+// Deploy a database
 module db 'mysql-db.bicep' = {
   name: 'db'
   params: {
-    //isNewDeployment: isNewDeployment
     mySqlName: mySQL.name
     dbName: dbName
   }

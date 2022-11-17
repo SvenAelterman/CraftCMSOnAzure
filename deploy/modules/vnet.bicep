@@ -1,19 +1,14 @@
 param location string
 param namingStructure string
 
-var addressPrefix = '10.22.{octet3}.0'
+param addressPrefix string = '10.91.0.{octet4}'
 
 var subnets = [
   {
-    subnetName: 'default'
+    subnetName: 'sn-appgw'
+    addressPrefix: '${replace(addressPrefix, '{octet4}', '0')}/25'
     delegation: ''
     serviceEndpoints: [
-      {
-        service: 'Microsoft.Storage'
-        locations: [
-          location
-        ]
-      }
       {
         service: 'Microsoft.KeyVault'
         locations: [
@@ -23,12 +18,14 @@ var subnets = [
     ]
   }
   {
-    subnetName: 'mysql'
+    subnetName: 'sn-mysql'
+    addressPrefix: '${replace(addressPrefix, '{octet4}', '128')}/26'
     delegation: 'Microsoft.DBforMySQL/flexibleServers'
     serviceEndpoints: []
   }
   {
-    subnetName: 'appSvc'
+    subnetName: 'sn-appSvc'
+    addressPrefix: '${replace(addressPrefix, '{octet4}', '192')}/26'
     delegation: 'Microsoft.Web/serverFarms'
     serviceEndpoints: [
       {
@@ -45,8 +42,21 @@ var subnets = [
       }
     ]
     // LATER: Consider service endpoint policy to avoid data exfil to another storage account
-    // TODO: Add App Gateway and Bastion subnets
   }
+  // {
+  //   subnetName: 'appGw'
+  //   addressPrefix: '${replace(addressPrefix, '{octet3}', '3')}/24'
+  //   delegation: '' //'Microsoft.Network/applicationGateways'
+  //   serviceEndpoints: [
+  //     {
+  //       service: 'Microsoft.KeyVault'
+  //       locations: [
+  //         location
+  //       ]
+  //     }
+  //   ]
+  // }
+  // TODO: Add Bastion subnet
 ]
 
 resource vnet 'Microsoft.Network/virtualNetworks@2021-08-01' = {
@@ -55,13 +65,13 @@ resource vnet 'Microsoft.Network/virtualNetworks@2021-08-01' = {
   properties: {
     addressSpace: {
       addressPrefixes: [
-        '${replace(addressPrefix, '{octet3}', '0')}/16'
+        '${replace(addressPrefix, '{octet4}', '0')}/24'
       ]
     }
     subnets: [for (subnet, i) in subnets: {
       name: subnet.subnetName
       properties: {
-        addressPrefix: '${replace(addressPrefix, '{octet3}', string(i))}/24'
+        addressPrefix: subnet.addressPrefix
         delegations: (empty(subnet.delegation) ? null : [
           {
             name: 'delegation'
