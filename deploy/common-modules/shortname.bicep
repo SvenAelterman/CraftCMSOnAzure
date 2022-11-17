@@ -14,6 +14,7 @@ param environment string
 param workloadName string
 param sequence int
 param removeHyphens bool = false
+param lowerCase bool = false
 
 // 24 is for Key Vault
 param maxLength int = 24
@@ -30,5 +31,6 @@ var shortLocations = {
 var shortLocationValue = shortLocations[location]
 var shortNameAnyLength = replace(replace(replace(replace(replace(namingConvention, '{env}', take(environment, 1)), '{loc}', shortLocationValue), '{seq}', string(sequence)), '{wloadname}', workloadName), '{rtype}', resourceType)
 var shortNameAnyLengthHyphensProcessed = removeHyphens ? replace(shortNameAnyLength, '-', '') : shortNameAnyLength
+var shortNameAnyLengthLowerCase = lowerCase ? toLower(shortNameAnyLengthHyphensProcessed) : shortNameAnyLengthHyphensProcessed
 
-output shortName string = take(shortNameAnyLengthHyphensProcessed, maxLength)
+output shortName string = take(shortNameAnyLengthLowerCase, maxLength)

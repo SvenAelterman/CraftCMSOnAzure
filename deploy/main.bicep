@@ -208,6 +208,7 @@ module stShortName 'common-modules/shortname.bicep' = {
     maxLength: 23
     removeHyphens: true
     sequence: sequence
+    lowerCase: true
   }
 }
 
