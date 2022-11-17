@@ -11,7 +11,7 @@ resource kv 'Microsoft.KeyVault/vaults@2021-11-01-preview' = {
       family: 'A'
     }
     tenantId: subscription().tenantId
-    enableSoftDelete: false
+    enableSoftDelete: true
     enableRbacAuthorization: true
 
     networkAcls: {
